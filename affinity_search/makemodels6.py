@@ -363,9 +363,8 @@ def makemodel(resolution, conv, pool, grouped, func, swapped):
     m = modelstart.replace('RESOLUTION','%.3f'%resolution)
     dim = 24-resolution
     m = m.replace('DIMENSION','%.3f'%dim)
-    
+
     clayer = ''
-    player = ''
     convname = 'initial_conv'
     if conv > 1: # have a layer
         clayer = convlayers[grouped]
@@ -373,41 +372,27 @@ def makemodel(resolution, conv, pool, grouped, func, swapped):
         if func:
             clayer += convafter
             convname = 'initial_func'
-    if pool > 1:
-        player = poollayer.replace('SIZESTRIDE',str(pool))
-    
+    player = poollayer.replace('SIZESTRIDE',str(pool)) if pool > 1 else ''
     initial = ''
-    
+
     if conv == 1 and pool == 1:
         m = m.replace('INITIALNAME','data')
     elif swapped:
         player = player.replace('POOLINPUT','data')
-        if pool > 1:        
-            ipool = 'initial_pool'
-        else:
-            ipool = 'data'
+        ipool = 'initial_pool' if pool > 1 else 'data'
         clayer = clayer.replace('CONVINPUT',ipool)
 
         initial = player+clayer
-        if conv > 1:
-            iconv = convname
-        else:
-            iconv = 'initial_pool'
+        iconv = convname if conv > 1 else 'initial_pool'
         m = m.replace('INITIALNAME',iconv)
     else:
         clayer = clayer.replace('CONVINPUT','data')
-        if conv > 1:
-            iconv = convname
-        else:
-            iconv = 'data'
+        iconv = convname if conv > 1 else 'data'
         player = player.replace('POOLINPUT',iconv)
         initial = clayer+player
-        if pool > 1:        
-            ipool = 'initial_pool'
-        else:
-            ipool = convname
+        ipool = 'initial_pool' if pool > 1 else convname
         m = m.replace('INITIALNAME',ipool)
-        
+
     m = m.replace('FIRSTLAYER',initial)
     return m
     

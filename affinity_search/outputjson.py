@@ -15,8 +15,8 @@ def makejson():
 	opts = makemodel.getoptions()
 
 	d=OrderedDict()
+	paramsize=1
 	for (name,vals) in sorted(opts.items()):
-		paramsize=1
 		if type(vals) == tuple:
 			options=list(map(str,vals))
 			paramtype="enum"

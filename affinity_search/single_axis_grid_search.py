@@ -5,6 +5,7 @@ obtained by enumerate each parameter individually (continuous are discretized).
 
 '''
 
+
 import sys, re, MySQLdb, argparse, os, json, subprocess
 import pandas as pd
 import makemodel
@@ -13,7 +14,7 @@ from MySQLdb.cursors import DictCursor
 from outputjson import makejson
 from populaterequests import addrows
 
-    
+
 parser = argparse.ArgumentParser(description='Exhaustive grid search along single axes of variation')
 parser.add_argument('--host',type=str,help='Database host')
 parser.add_argument('-p','--password',type=str,help='Database password')
@@ -45,12 +46,10 @@ for param in params:
                 else:
                     row.append(defaults[name])
             outrows.add(tuple(row))
-                    
-out = open(args.output,'w')
-for row in outrows:
-    out.write(' '.join(map(str,row))+'\n')
 
-out.close()
+with open(args.output,'w') as out:
+    for row in outrows:
+        out.write(' '.join(map(str,row))+'\n')
 
 if args.host:
     addrows(args.output,args.host,args.db,args.password)

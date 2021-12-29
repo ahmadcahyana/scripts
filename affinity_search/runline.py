@@ -32,8 +32,8 @@ parser.add_argument('--split',type=int,help='Which predefined split to use',defa
 parser.add_argument('--data_root',type=str,help='Location of gninatypes directory',default='')
 parser.add_argument('--prefix',type=str,help='Prefix, not including split',default='../data/refined/all_0.5_')
 parser.add_argument('--dir',type=str,help='Directory to use')
-parser.add_argument('--ligmap',type=str,help="Ligand atom typing map to use",default='') 
-parser.add_argument('--recmap',type=str,help="Receptor atom typing map to use",default='') 
+parser.add_argument('--ligmap',type=str,help="Ligand atom typing map to use",default='')
+parser.add_argument('--recmap',type=str,help="Receptor atom typing map to use",default='')
 args = parser.parse_args()
 
 linevals = args.line.split()[2:]
@@ -43,19 +43,21 @@ opts = makemodel.getoptions()
 if len(linevals) != len(opts):
     print("Wrong number of options in line (%d) compared to options (%d)" %(len(linevals),len(opts)))
 
-params = dict()
+params = {}
 for (i,(name,vals)) in enumerate(sorted(opts.items())):
     v = linevals[i]
     if v == 'False':
         v = 0
     if v == 'True':
         v = 1
-    if type(vals) == tuple:
-        if type(vals[0]) == int:
-            v = int(v)
-        elif type(vals[0]) == float:
-            v = float(v)
-    elif isinstance(vals, makemodel.Range):
+    if type(vals) == tuple and type(vals[0]) == int:
+        v = int(v)
+    elif (
+        type(vals) == tuple
+        and type(vals[0]) == float
+        or type(vals) != tuple
+        and isinstance(vals, makemodel.Range)
+    ):
         v = float(v)
     params[name] = v
 
@@ -79,10 +81,8 @@ else:
     d = tempfile.mkdtemp(prefix=host+'-',dir='.')
 
 os.chdir(d)
-mfile = open('model.model','w')
-mfile.write(model)
-mfile.close()
-
+with open('model.model','w') as mfile:
+    mfile.write(model)
 #get hyperparamters
 base_lr = 10**params.base_lr_exp
 momentum=params.momentum
@@ -127,7 +127,7 @@ for i in train_test_files:
 #once all folds are trained, test and evaluate them
 testresults = []
 for i in train_test_files:
-    
+
     #get latest model file for this fold
     lasti = -1
     caffemodel = ''
@@ -140,9 +140,9 @@ for i in train_test_files:
     if lasti == -1:
         print("Couldn't find valid caffemodel file %s.%d_iter_*.caffemodel"%(outprefix,i))
         sys.exit(-1)
-        
+
     testresults += evaluate_fold(train_test_files[i]['test'], caffemodel, 'model.model',trainargs.data_root)
-    
+
 
 (rmse, R, S, aucpose, aucaff, top) = analyze_results(testresults,'%s.summary'%outprefix,'pose')
 

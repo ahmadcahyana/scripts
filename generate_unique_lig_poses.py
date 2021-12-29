@@ -25,10 +25,7 @@ from rdkit.Chem import AllChem as Chem
 import pandas as pd
 
 def check_exists(filename):
-	if os.path.isfile(filename) and os.path.getsize(filename)>0:
-		return True
-	else:
-		return False
+	return bool(os.path.isfile(filename) and os.path.getsize(filename)>0)
 
 def run_obrms_cross(filename):
 	'''
@@ -37,8 +34,7 @@ def run_obrms_cross(filename):
 
 	csv=subprocess.check_output('obrms -x '+filename,shell=True)
 	csv=str(csv,'utf-8').rstrip().split('\n')
-	data=pd.DataFrame([x.split(',')[1:] for x in csv],dtype=float)
-	return data
+	return pd.DataFrame([x.split(',')[1:] for x in csv],dtype=float)
 
 parser=argparse.ArgumentParser(description='Create ligname<OUTSUFFIX> files for use with generate_counterexample_typeslines.py.')
 parser.add_argument('-p','--pocket',type=str,required=True,help='Name of the pocket that you will be generating the file for.')
@@ -57,7 +53,10 @@ myroot=os.path.join(args.root,args.pocket,'')
 
 #1) gather the crystal files & pull out the crystal names present in the pocket
 crystal_files=glob.glob(myroot+'*'+args.crystal_suffix)
-crystal_names=set([x.split('/')[-1].split(args.crystal_suffix)[0].split('_')[1] for x in crystal_files])
+crystal_names = {
+    x.split('/')[-1].split(args.crystal_suffix)[0].split('_')[1]
+    for x in crystal_files
+}
 
 #2) main loop
 for cr_name in crystal_names:
@@ -92,8 +91,8 @@ for cr_name in crystal_names:
 				if simi not in assignments:
 					assignments[simi]=r
 
-	to_remove=set([k for (k,v) in assignments.items() if k!=v])
-	
+	to_remove = {k for (k,v) in assignments.items() if k!=v}
+
 	#vi)  write the unique files to the sdf
 	new_unique_sdfname=myroot+cr_name+args.out_suffix
 	w=Chem.SDWriter(new_unique_sdfname)

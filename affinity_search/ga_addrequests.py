@@ -32,8 +32,7 @@ def getcursor(host,passwd,db):
     doing this guards against dropped connections'''
     conn = MySQLdb.connect (host = host,user = "opter",passwd=passwd,db=db)
     conn.autocommit(True)
-    cursor = conn.cursor(DictCursor)
-    return cursor
+    return conn.cursor(DictCursor)
     
 def cleanparams(p):
     '''standardize params that do not matter'''
@@ -72,11 +71,8 @@ def randParam(param, choices):
     return np.asscalar(np.random.choice(choices))
 
 def randomIndividual():
-    ret = dict()
     options = makemodel.getoptions()
-    for (param,choices) in options.items():
-        ret[param] = randParam(param, choices)
-    
+    ret = {param: randParam(param, choices) for (param,choices) in options.items()}
     return cleanparams(ret)
     
 def evaluateIndividual(ind):
@@ -111,7 +107,7 @@ def runGA(pop):
     stats.register("max", np.max)
     best = 0
     pop = toolbox.clone(pop)
-    for i in range(40):
+    for _ in range(40):
         pop, log = algorithms.eaMuPlusLambda(pop, toolbox, mu=300, lambda_=300, cxpb=0.5, mutpb=0.2, ngen=25, 
                                        stats=stats, halloffame=hof, verbose=True)
         newmax = log[-1]['max']

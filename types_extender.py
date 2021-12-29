@@ -20,10 +20,7 @@ OUTPUT
 import argparse, os, re, glob
 
 def check_exists(filename):
-	if os.path.isfile(filename) and os.path.getsize(filename)>0:
-		return True
-	else:
-		return False
+	return bool(os.path.isfile(filename) and os.path.getsize(filename)>0)
 
 parser=argparse.ArgumentParser(description='Add lines to types file and create a new one. Assumes data file structure is ROOT/POCKET/FILES.')
 parser.add_argument('-i','--input',type=str,required=True,help='Types file you will be extending.')

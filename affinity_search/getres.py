@@ -12,8 +12,7 @@ def getcursor():
     doing this guards against dropped connections'''
     conn = MySQLdb.connect (host = args.host,user = "opter",passwd=args.password,db=args.db)
     conn.autocommit(True)
-    cursor = conn.cursor()
-    return cursor
+    return conn.cursor()
     
     
 parser = argparse.ArgumentParser(description='Return top and R statistics for successful rows in database')

@@ -5,8 +5,8 @@ import sys,re, collections
 for the best rmsd example'''
 
 #first identify best rmsd
-bestval = dict()
-bestlig = dict()
+bestval = {}
+bestlig = {}
 for line in open(sys.argv[1]):
 #    0 1a30/1a30_rec.gninatypes 1a30/1a30_ligand_0.gninatypes # 8.46937 -8.3175
     vals = line.rstrip().split()
@@ -15,7 +15,7 @@ for line in open(sys.argv[1]):
     if rec not in bestval or rmsd < bestval[rec]:
         bestval[rec] = rmsd
         bestlig[rec] = vals[3]
-        
+
 for line in open(sys.argv[1]):
     vals = line.rstrip().split()
     rec = vals[2]

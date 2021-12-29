@@ -151,7 +151,7 @@ def evaluate_test_net(test_net, n_tests, n_rotations):
     y_predaffs = [[] for _ in range(n_tests)]
     rmsd_true = [-1 for _ in range(n_tests)]
     rmsd_pred = [[] for _ in range(n_tests)]
-    
+
     losses = []
 
     rmsd_true_blob = test_net.blobs.get('rmsd_true')
@@ -191,13 +191,12 @@ def evaluate_test_net(test_net, n_tests, n_rotations):
                 y_predaffs[x].append(float(res['predaff'][i]))
             if 'loss' in res:
                 losses.append(float(res['loss']))                
-                
-            if rmsd_true_blob:
-                if r == 0:
-                    rmsd_true[x] = float(rmsd_true_blob.data[i])
+
+            if rmsd_true_blob and r == 0:
+                rmsd_true[x] = float(rmsd_true_blob.data[i])
             if rmsd_pred_blob:
                 rmsd_pred[x].append(float(rmsd_pred_blob.data[i]))
-                
+
             i += 1
 
     result = Namespace(auc=None, y_true=y_true, y_score=[], loss=None,
@@ -217,7 +216,7 @@ def evaluate_test_net(test_net, n_tests, n_rotations):
         for x in range(n_tests):
             result.rmsd_pred.append(np.mean(rmsd_pred[x]))
 
-                        
+
     #compute auc
     if result.y_true and result.y_score:
         if len(np.unique(result.y_true)) > 1:
@@ -230,7 +229,7 @@ def evaluate_test_net(test_net, n_tests, n_rotations):
     if result.y_aff and result.y_predaff:
         y_predaff_true = np.array(result.y_predaff)[np.array(result.y_aff)>0]#filter_actives(result.y_predaff, result.y_true)
         y_aff_true = np.array(result.y_aff)[np.array(result.y_aff)>0]#filter_actives(result.y_aff, result.y_true)
-        
+
         if y_aff_true.shape[0] == 0:
             print("Warning: no true affinities, setting rmsd=-999.0")
             result.rmsd=-999.0
@@ -239,7 +238,7 @@ def evaluate_test_net(test_net, n_tests, n_rotations):
 
     if any(rmsd_pred):
         result.rmsd_rmse = np.sqrt(sklearn.metrics.mean_squared_error(result.rmsd_pred,result.rmsd_true))
-        
+
     #compute mean loss
     if losses:
         result.loss = np.mean(losses)
@@ -256,24 +255,22 @@ def check_improvement(testval, ratio, gold, gold_i, current_i, want_bigger):
     Returns a tuple: (best_val, i, to_snap)'''
 
     #indicators that we are at the first testing iteration and just need to return.
-    if gold==np.inf or gold==0:
+    if gold in [np.inf, 0]:
         return (testval, current_i, True)
 
     best_val=gold
     i=gold_i
     to_snap=False
 
-    if want_bigger:
-        if (testval-gold) / gold > ratio:
-            best_val=testval
-            i=current_i
-            to_snap=True
-    else:
-        if (gold-testval) / gold > ratio:
-            best_val=testval
-            i=current_i
-            to_snap=True
-
+    if (
+        want_bigger
+        and (testval - best_val) / best_val > ratio
+        or not want_bigger
+        and (best_val - testval) / best_val > ratio
+    ):
+        best_val=testval
+        i=current_i
+        to_snap=True
     return (best_val, i, to_snap)
 
 def train_and_test_model(args, files, outname, cont=0):
@@ -779,12 +776,13 @@ def parse_args(argv=None):
     parser.add_argument('--display_iter',type=int,default=0,help='Print out network outputs every so many iterations')
     parser.add_argument('--update_ratio',type=float,default=0.001,help="Improvements during training need to be better than this ratio. IE (best-current)/best > update_ratio. Defaults to 0.001")
     args = parser.parse_args(argv)
-    
+
     argdict = vars(args)
-    line = ''
-    for (name,val) in list(argdict.items()):
-        if val != parser.get_default(name):
-            line += ' --%s=%s' %(name,val)
+    line = ''.join(
+        ' --%s=%s' % (name, val)
+        for (name, val) in list(argdict.items())
+        if val != parser.get_default(name)
+    )
 
     return (args,line)
 
@@ -809,9 +807,11 @@ def get_train_test_files(prefix, foldnums, allfolds, reduced, prefix2, percent_r
     elif isinstance(foldnums, str):
         foldnums = [int(i) for i in foldnums.split(',') if i]
     for i in foldnums:
-        files[i] = {}
-        files[i]['train'] = '%strain%d.types' % (prefix, i)
-        files[i]['test'] = '%stest%d.types' % (prefix, i)
+        files[i] = {
+            'train': '%strain%d.types' % (prefix, i),
+            'test': '%stest%d.types' % (prefix, i),
+        }
+
         if percent_reduced:
             files[i]['reduced_train'] = '%strain%d.types' % (prefix, i)
             files[i]['reduced_test'] = '%stest%d.types' % (prefix, i)
@@ -879,7 +879,7 @@ if __name__ == '__main__':
 
     if args.update_ratio > 0.01:
         print("warning: --update_ratio > 0.01, this may cause earlier termination that desired.")
-    
+
     for i in train_test_files:
         for key in sorted(train_test_files[i], key=len):
             print(str(i).rjust(3), key.rjust(14), train_test_files[i][key])
@@ -917,18 +917,16 @@ if __name__ == '__main__':
                 print(oldline)
                 print("Previous commandline from checkpoint does not match current.  Cannot restore checkpoint.")
                 sys.exit(1)
-        
-        outcheck = open(cmdcheckname,'w')
-        outcheck.write(cmdline)
-        outcheck.close()        
-        
+
+        with open(cmdcheckname,'w') as outcheck:
+            outcheck.write(cmdline)
     #train each pair
     numfolds = 0
     for i in train_test_files:
 
         outname = '%s.%s' % (outprefix, i)        
         cont = args.cont
-                
+
         results = train_and_test_model(args, train_test_files[i], outname, cont)
 
         if args.prefix2:
@@ -978,7 +976,7 @@ if __name__ == '__main__':
             test_y_predaff.extend(test.y_predaff)
             train_y_aff.extend(train.y_aff)
             train_y_predaff.extend(train.y_predaff)
-            
+
         if test.rmsd_rmses:
             test_rmsd_rmses.append(test.rmsd_rmses)
             train_rmsd_rmses.append(train.rmsd_rmses)
@@ -1019,8 +1017,8 @@ if __name__ == '__main__':
         if any(test_rmsd_rmses):
             combine_fold_results(test_rmsd_rmses, train_rmsd_rmses, test_rmsd_true, test_rmsd_pred, train_rmsd_true, train_rmsd_pred,
                                  outprefix, args.test_interval, 'rmsd', second_data_source=False)
-                                 
-                                 
+
+
         if any(test2_aucs):
             combine_fold_results(test2_aucs, train2_aucs, test2_y_true, test2_y_score, train2_y_true, train2_y_score,
                                  outprefix, args.test_interval, 'pose', second_data_source=True)

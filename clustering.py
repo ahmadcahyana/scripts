@@ -80,14 +80,13 @@ def assignGroup(dists, ligandsim, t, t2, ligandt, explore, names):
         frontier = set()
         for i in explore:
             for j in range(dists.shape[1]):
-                if j not in group:
-                    #add to the group if protein is close by threshold t (these are distances - default 0.5)
-                    #also add if the ligands are more similar (not distance) than ligandt and 
-                    #the protein is closer than t2 (default 0.8 - meaning more than 20% similar)
-                    if dists[i][j] < t or (ligandsim[i][j] > ligandt and dists[i][j] < t2):
-                        group.add(j)
-                        frontier.add(j)                
-                                        
+                if j not in group and (
+                    dists[i][j] < t
+                    or (ligandsim[i][j] > ligandt and dists[i][j] < t2)
+                ):
+                    group.add(j)
+                    frontier.add(j)                
+
         explore = frontier
     return group
 
@@ -101,7 +100,7 @@ def calcClusterGroups(dists, ligandsim, target_names, t, t2, ligandt):
             group = assignGroup(dists, ligandsim, t, t2, ligandt, set([i]),target_names)
             groups.append(group)
             assigned.update(group)
-    return [set(target_names[i] for i in g) for g in groups]
+    return [{target_names[i] for i in g} for g in groups]
 
 
 def createFolds(cluster_groups, numfolds, target_lines, randomize):
@@ -158,13 +157,10 @@ def crossvalidatefiles(folds, outname, numfolds, target_lines,reduce):
     trainfiles = [(open('{}train{}.types'.format(outname, i), 'w'),open('{}reducedtrain{}.types'.format(outname, i), 'w')) for i in range(numfolds)]
     testfiles = [(open('{}test{}.types'.format(outname, i), 'w'),open('{}reducedtest{}.types'.format(outname, i), 'w')) for i in range(numfolds)]
     target_set = set(sum(folds, []))
-    
+
     for target in target_lines.keys():
         for i in range(numfolds):
-            if target in folds[i]:
-                out = testfiles[i]
-            else:
-                out = trainfiles[i]
+            out = testfiles[i] if target in folds[i] else trainfiles[i]
             for line in target_lines[target]:
                 out[0].write(line)
                 if np.random.random() < reduce:
@@ -213,15 +209,18 @@ def checkFolds(dists, target_names, threshold, foldmap):
         for b in range(a+1, n_targets):
             a_name = target_names[a]
             b_name = target_names[b]
-            if a_name in foldmap and b_name in foldmap:
-                if foldmap[a_name] != foldmap[b_name]:
-                    if dists[a][b] < min_dist:
-                        min_dist = dists[a][b]
-                        closest = (a_name, b_name)
-                    if dists[a][b] < threshold:
-                        print('warning: {} and {} are {:.3f}% similar but in different folds' \
-                              .format(a_name, b_name, 100*(1-dists[a][b])))
-                        ok = False
+            if (
+                a_name in foldmap
+                and b_name in foldmap
+                and foldmap[a_name] != foldmap[b_name]
+            ):
+                if dists[a][b] < min_dist:
+                    min_dist = dists[a][b]
+                    closest = (a_name, b_name)
+                if dists[a][b] < threshold:
+                    print('warning: {} and {} are {:.3f}% similar but in different folds' \
+                          .format(a_name, b_name, 100*(1-dists[a][b])))
+                    ok = False
     if closest:
         print('{} and {} are the most similar targets in different folds ({:.3f}%)' \
               .format(closest[0], closest[1], 100*(1-min_dist)))
@@ -253,9 +252,8 @@ def readPDBfiles(pdbfiles,ncpus=cpu_count()):
     for tup in sorted(target_tups):
         if not tup:
             continue
-        else:
-            target_names.append(tup[0])
-            targets.append(tup[1])
+        target_names.append(tup[0])
+        targets.append(tup[1])
     return target_names, targets
 
 
@@ -273,14 +271,14 @@ def loadTarget(pdb_parser, line):
 def computeLigandSimilarity(target_names, fname):
     '''Read target (first col) and ligand (third col) from fname. 
     Return ligand similarity matrix indexed according to target_names'''
-    fingerprints = dict()
+    fingerprints = {}
     for line in open(fname):
         vals = line.split()
         targ = vals[0]
         ligfile = vals[2]
         smi = open(ligfile).readline().split()[0]
         mol = AllChem.MolFromSmiles(smi)
-        if mol == None:
+        if mol is None:
             mol = AllChem.MolFromSmiles(smi,sanitize=False)
         fp = FingerprintMols.FingerprintMol(mol)
         fingerprints[targ] = fp

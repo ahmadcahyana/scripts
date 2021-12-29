@@ -13,8 +13,7 @@ def getcursor(host,passwd,db):
     doing this guards against dropped connections'''
     conn = MySQLdb.connect (host = host,user = "opter",passwd=passwd,db=db)
     conn.autocommit(True)
-    cursor = conn.cursor(DictCursor)
-    return cursor
+    return conn.cursor(DictCursor)
     
 def __my_flatten_cols(self, how="_".join, reset_index=True):
     how = (lambda iter: list(iter)[-1]) if how == "last" else how

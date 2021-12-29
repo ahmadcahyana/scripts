@@ -22,15 +22,10 @@ def parse_args(argv=None):
 	parser.add_argument('-b','--box_size',type=int,default=24, help='Size of the box. Used for sanity check that you are not trying to predict outside of box for gnina. MUST MATCH BOX OF MODEL. Defaults are default grid size for gnina')
 	parser.add_argument('--plot', action='store_true',default=False, help='Flag to make 1 large plot from the data. Assumes job(s) have completed. Requires Hydrogen to be a vaild receptor. Saves pdf called simple_vis.pdf in the current working directory')
 	parser.add_argument('-d','--dataroot',type=str,default='simpledata/',help='Root folder of data resulting from output of running the OUTNAME file')
-	args=parser.parse_args(argv)
-
-	return args
+	return parser.parse_args(argv)
 
 def path_checker(filename):
-	if os.path.isfile(filename) and os.path.getsize(filename)>0:
-		return True
-	else:
-		return False
+	return bool(os.path.isfile(filename) and os.path.getsize(filename)>0)
 
 def get_atoms(filename):
 	'''
@@ -44,7 +39,7 @@ def get_atoms(filename):
 
 	return listo
 
-def make_points(atom,val_range,root,mapping):#TODO -- make sure this works
+def make_points(atom,val_range,root,mapping):	#TODO -- make sure this works
 	'''
 	Function that makes the points needed for the types file.
 	'''
@@ -52,8 +47,7 @@ def make_points(atom,val_range,root,mapping):#TODO -- make sure this works
 	if not os.path.isdir(root+atom):
 		os.mkdir(root+atom)
 
-	counter=0
-	for x in val_range:
+	for counter, x in enumerate(val_range):
 		pos=[x,0.0,0.0]
 		pos=struct.pack('f'*len(pos),*pos)
 		identity=[mapping]
@@ -61,7 +55,6 @@ def make_points(atom,val_range,root,mapping):#TODO -- make sure this works
 		with open(root+atom+'/'+atom+'_'+str(counter)+'.gninatypes','wb') as f:
 			f.write(pos)
 			f.write(identity)
-		counter+=1
 
 def make_types(atom, root, receptor):
 	'''
@@ -173,13 +166,17 @@ if __name__=='__main__':
 
 	if args.plot:
 		#We need to set up the ligand groups [[Carbons],[Nitrogens],[Oxygens],[Sulfur + Phosphorous],[Fluorine, Chlorine, Bromine],[rest of them]]
-		ligGroups=[
-			[x for x in lig_atoms if 'Carbon' in x],
-			[x for x in lig_atoms if 'Nitrogen' in x],
-			[x for x in lig_atoms if 'Oxygen' in x],
-			[x for x in lig_atoms if x=='Sulfur' or x=='Phosphorus'],
-			[x for x in lig_atoms if x=='Fluorine' or x=='Chlorine' or x=='Bromine'],
-			[x for x in lig_atoms if x!='Fluorine' and x!='Chlorine' and x!='Bromine' and x!='Sulfur' and x!='Phosphorus' and 'Oxygen' not in x and 'Nitrogen' not in x and 'Carbon' not in x]
+		ligGroups = [
+		    [x for x in lig_atoms if 'Carbon' in x],
+		    [x for x in lig_atoms if 'Nitrogen' in x],
+		    [x for x in lig_atoms if 'Oxygen' in x],
+		    [x for x in lig_atoms if x in ['Sulfur', 'Phosphorus']],
+		    [x for x in lig_atoms if x in ['Fluorine', 'Chlorine', 'Bromine']],
+		    [
+		        x for x in lig_atoms if x != 'Fluorine' and x != 'Chlorine'
+		        and x != 'Bromine' and x != 'Sulfur' and x != 'Phosphorus'
+		        and 'Oxygen' not in x and 'Nitrogen' not in x and 'Carbon' not in x
+		    ],
 		]
 
 		ligcolors=[
@@ -202,10 +199,7 @@ if __name__=='__main__':
 			values=range(len(ligGroups[-1]))
 			cNorm=colors.Normalize(vmin=0,vmax=values[-1])
 			scalarMap=cmx.ScalarMappable(norm=cNorm,cmap=jet)
-			use_colors_add=[]
-			for idx in values:
-				use_colors_add.append(scalarMap.to_rgba(values[idx]))
-
+			use_colors_add = [scalarMap.to_rgba(values[idx]) for idx in values]
 			use_colors.append(use_colors_add)
 
 		#calculating the baseline (done with Hydrogen as a receptor)
@@ -217,6 +211,7 @@ if __name__=='__main__':
 		n=len(use_groups)
 		m=len(rec_atoms)
 		f, axarr=plt.subplots(n,m,figsize=(50,20))
+		databaseline=0
 		for (j,recAtomType) in enumerate(rec_atoms):
 			for (i,g) in enumerate(use_groups):
 				ax=axarr[i][j]
@@ -224,7 +219,6 @@ if __name__=='__main__':
 
 				for (lcolor,ligAtomType) in zip(use_colors[i],g):
 					data=0
-					databaseline=0
 					fn=dataroot+recAtomType+'_rec_'+ligAtomType+'_lig_'+mprefix+'_predictscores'
 					with open(fn) as f:
 						lines=f.readlines()
@@ -246,19 +240,20 @@ if __name__=='__main__':
 				ax.text(1,-.95,"Covalent",rotation_mode=None,color='black',visible=True,rotation=90,verticalalignment='bottom')
 				ax.text(3,-.95,"Van der Waals",color='black',visible=True,rotation=90,verticalalignment='bottom')
 				ax.set_ylim(-1,1)
-				
+
 				if i==n-1:
 					ax.set_xlabel("Distance From Receptor (A)",fontsize=16)
-				if i==0 and recAtomType=='Hydrogen':
-					ax.set_title("Ligand Baseline Score",fontsize=14)
-				elif i==0:
-					ax.set_title(recAtomType.replace('XS',""),fontsize=14)
+				if i==0:
+					if recAtomType == 'Hydrogen':
+						ax.set_title("Ligand Baseline Score",fontsize=14)
+					else:
+						ax.set_title(recAtomType.replace('XS',""),fontsize=14)
 				if j==0:
 					ax.set_ylabel('CNN Score', fontsize=16)
 				if j==m-1:
 					ax.legend(bbox_to_anchor=(1,.5),loc='center left',ncol=1,fontsize=14,title="Ligand Atom Type")
 				if i < n-1:
-					ax.tick_params(labelbottom='off')  
+					ax.tick_params(labelbottom='off')
 				if j > 0:
 					ax.tick_params(labelleft='off')
 		plt.suptitle('Receptor Atom Type',fontsize=24)

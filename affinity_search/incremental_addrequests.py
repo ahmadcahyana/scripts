@@ -37,8 +37,7 @@ def getcursor():
     doing this guards against dropped connections'''
     conn = MySQLdb.connect (host = args.host,user = "opter",passwd=args.password,db=args.db)
     conn.autocommit(True)
-    cursor = conn.cursor(DictCursor)
-    return cursor
+    return conn.cursor(DictCursor)
     
     
 parser = argparse.ArgumentParser(description='Generate more configurations if needed')
@@ -46,7 +45,7 @@ parser.add_argument('--host',type=str,help='Database host',required=True)
 parser.add_argument('-p','--password',type=str,help='Database password',required=True)
 parser.add_argument('--db',type=str,help='Database name',default='database')
 parser.add_argument('--pending_threshold',type=int,default=12,help='Number of pending jobs that triggers an update')
-parser.add_argument('-n','--num_configs',type=int,default=5,help='Number of configs to generate - will add a multiple as many jobs') 
+parser.add_argument('-n','--num_configs',type=int,default=5,help='Number of configs to generate - will add a multiple as many jobs')
 parser.add_argument('-s','--spearmint',type=str,help='Location of spearmint-lite.py',required=True)
 parser.add_argument('--model_threshold',type=int,default=12,help='Number of unique models to evaluate at a level before giving up and going to the next level')
 parser.add_argument('--priority',type=file,help='priority order of parameters',required=True)
@@ -76,7 +75,7 @@ if pending > args.pending_threshold:
 #create gnina-spearmint directory if it doesn't exist already
 if not os.path.exists('gnina-spearmint-incremental'):
     os.makedirs('gnina-spearmint-incremental')
-    
+
 #read in prioritized list of parameters
 params = args.priority.read().rstrip().split()
 
@@ -111,31 +110,26 @@ else:
     #very first time we've run
     level = 0
     prevbest = bestRtop
-    info = open(args.info,'w')
-    info.write('0 %f\n'%bestRtop)
-    info.close()
-
+    with open(args.info,'w') as info:
+        info.write('0 %f\n'%bestRtop)
 #check to see if we should promote level
 if bestRtop > prevbest*1.01:
     level += 1
-    info = open(args.info,'a')
-    info.write('%d %f\n' % (level,bestRtop))
-    info.close()
-
-
+    with open(args.info,'a') as info:
+        info.write('%d %f\n' % (level,bestRtop))
 try:  #remove pickle file in case number of parameters has changed
     if level != 50: os.remove('gnina-spearmint-incremental/chooser.GPEIOptChooser.pkl')
 except:
     pass
-    
+
 #create config.json without defaulted parameters
 config = makejson()
-defaults = dict()
+defaults = {}
 for (i,(name,value)) in enumerate(zip(params,defaultparams)):
     if i > level:
         defaults[name] = str(value)
         del config[name]
-           
+
 cout = open('gnina-spearmint-incremental/config.json','w')
 cout.write(json.dumps(config, indent=4)+'\n')
 cout.close()
@@ -151,19 +145,15 @@ validrows = 0
 for (i,row) in data.iterrows():
     outrow = []
     for (name,vals) in options:
-        if name == 'resolution':
-            val = str(float(row[name])) #gets returned as 1 instead of 1.0 
-        else:
-            val = str(row[name])
-            
+        val = str(float(row[name])) if name == 'resolution' else str(row[name])
         if name in defaults:  # is this row acceptable
-            if type(row[name]) == float or type(row[name]) == int:
+            if type(row[name]) in [float, int]:
                 if np.abs(float(defaults[name])-row[name]) > 0.00001:
                     break
             elif row[name] != defaults[name]:
                 break
         else:
-            outrow.append(val) 
+            outrow.append(val)
     else:  #execute if we didn't break        
         validrows += 1
         uniqconfigs.add(tuple(outrow))
@@ -177,7 +167,7 @@ for (i,row) in data.iterrows():
         resf.write(' '.join(outrow))
         resf.write('\n')
 resf.close()
-        
+
 gseed = len(uniqconfigs) #not clear this actually makes sense in our context..
 print("Uniq configs:",gseed)
 print("Evaled configs:",len(evalconfigs))
@@ -187,14 +177,13 @@ threshold = (level+1)*args.model_threshold
 if len(evalconfigs) > threshold:
     #promote level, although this will not effect this invocation
     level += 1
-    info = open(args.info,'a')
-    info.write('%d %f\n'%(level,bestRtop))
-    info.close()
+    with open(args.info,'a') as info:
+        info.write('%d %f\n'%(level,bestRtop))
     try:
         os.remove('gnina-spearmint-incremental/chooser.GPEIOptChooser.pkl')
     except:
         pass    
-    
+
 # run spearmint-light, set the seed to the number of unique configurations
 spearargs = ['python',args.spearmint, '--method=GPEIOptChooser', '--grid-size=20000', 
         'gnina-spearmint-incremental', '--n=%d'%args.num_configs, '--grid-seed=%d' % gseed]
@@ -206,22 +195,21 @@ lines = open('gnina-spearmint-incremental/results.dat').readlines()
 newlines = np.unique(lines[validrows:])
 print(len(newlines),args.num_configs)
 assert(len(newlines) > 0)
-out = open('gnina-spearmint-incremental/newrows.dat','w')
-for line in newlines:
-    vals = line.rstrip().split()
-    pos = 2
-    outrow = [vals[0],vals[1]]
-    for (name,_) in options:
-        if name in defaults:  
-            outrow.append(defaults[name])
-        else: #not defaults in opt order
-            outrow.append(vals[pos])
-            pos += 1
-    assert(pos == len(vals))
-    out.write(' '.join(outrow))
-    out.write('\n')
-    print(' '.join(outrow))
-out.close()
+with open('gnina-spearmint-incremental/newrows.dat','w') as out:
+    for line in newlines:
+        vals = line.rstrip().split()
+        pos = 2
+        outrow = [vals[0],vals[1]]
+        for (name,_) in options:
+            if name in defaults:  
+                outrow.append(defaults[name])
+            else: #not defaults in opt order
+                outrow.append(vals[pos])
+                pos += 1
+        assert(pos == len(vals))
+        out.write(' '.join(outrow))
+        out.write('\n')
+        print(' '.join(outrow))
 #add to database as REQUESTED jobs
 
 addrows('gnina-spearmint-incremental/newrows.dat',args.host,args.db,args.password)

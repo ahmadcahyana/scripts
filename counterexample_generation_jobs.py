@@ -19,12 +19,10 @@ import os, argparse, glob, re
 def get_receptors(root,rec_id):
 	all_pdbs=glob.glob(root+'*.pdb')
 	identifier=re.compile(rec_id)
-	recs=[x for x in all_pdbs if re.match(identifier,x.split('/')[-1])]
-	return recs
+	return [x for x in all_pdbs if re.match(identifier,x.split('/')[-1])]
 
 def get_ligands(root,lig_suffix):
-	all_ligs=glob.glob(root+'*'+lig_suffix)
-	return all_ligs
+	return glob.glob(root+'*'+lig_suffix)
 
 def generate_line(receptor,ligand,outname,crystal_ligand,seed,num_modes,builtin_cnn,supplied_cnn=None,supplied_weights=None):
 	if bool(supplied_cnn) and bool(supplied_weights):

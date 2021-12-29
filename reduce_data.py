@@ -45,7 +45,7 @@ if __name__ == '__main__':
     args = parse_args()
     random.seed(args.random_seed)
     cvfiles = crossval_files(args.prefix, args.numfolds)
-    for i, (trainfile, testfile) in enumerate(cvfiles):
+    for trainfile, testfile in cvfiles:
         train = read_lines(trainfile)
         reduced_trainfile = reduced_file(trainfile)
         write_reduced_lines(reduced_trainfile, train, args.factor)

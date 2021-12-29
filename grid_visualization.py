@@ -18,15 +18,10 @@ def parse_args(argv=None):
 	parser.add_argument('-n','--num_points',type=int, default=20, help='Number of points per half of the box (ex 20 means there will be 39x39x39 points total). Defaults are reasonable.\n')
 	parser.add_argument('--make_dx', action='store_true',default=False, help='Flag to make dx files from the data. Assumes job(s) have completed.\n')
 	parser.add_argument('-d','--dataroot',type=str,default='data/',help='Root folder of data resulting from output\n')
-	args=parser.parse_args(argv)
-
-	return args
+	return parser.parse_args(argv)
 
 def path_checker(filename):
-	if os.path.isfile(filename) and os.path.getsize(filename)>0:
-		return True
-	else:
-		return False
+	return bool(os.path.isfile(filename) and os.path.getsize(filename)>0)
 
 
 def get_atoms(filename):

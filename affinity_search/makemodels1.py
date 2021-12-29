@@ -263,13 +263,13 @@ for pose in ['', posepredict]:
                     astep = 1
                 else:
                     amin = amax = astep = 0
-                                 
+
                 model = makemodel(POSEPREDICT=pose, RECEPTOR=receptor,AFFMIN=amin,AFFMAX=amax,AFFSTEP=astep,BALANCED=balanced)
                 m = 'affinity_p%d_rec%d_astrat%d_b%d.model'%(len(pose)>0,receptor=='true',affstrat,balanced=='true')
                 models.append(m)
                 out = open(m,'w')
                 out.write(model)
-            
+
 
 unbalanced = set(['bestonly','crystal','posonly'])
 single = set(['bestonly','crystal'])
@@ -277,11 +277,8 @@ for i in ['all','besty','posonly','crystal','bestonly']:
     #some around valid for the model - assume we die quickly?
     for m in models:
         if i in unbalanced:
-             if'_b1' in m: continue
-             if '_p1' in m: continue
-        else: #balanced
-            if '_b0' in m: continue
-        if i in single:
-            if '_rec1' in m: continue #only one per receptor, not much point
-
+            if'_b1' in m: continue
+            if '_p1' in m: continue
+        elif '_b0' in m: continue
+        if i in single and '_rec1' in m: continue #only one per receptor, not much point
         print("train.py -m %s -p ../types/%s_0.5_0_ --keep_best -t 1000 -i 100000 --reduced -o %s_%s"%(m,i,i,m.replace('.model','')))

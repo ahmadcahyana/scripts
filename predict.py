@@ -45,7 +45,6 @@ def predict(args):
     pearsonr = None
     y_affinity = result.y_aff
     y_predaff = result.y_predaff
-    
 #    auc, y_true, y_score, loss, rmsd, y_affinity, y_predaff = result
 
     if 'labelout' in test_net.outputs:
@@ -58,18 +57,18 @@ def predict(args):
                 sys.exit(-1)
 
     if rmsd != None and auc != None:
-        output_lines = [t for t in zip(y_score, y_predaff, lines)]
+        output_lines = list(zip(y_score, y_predaff, lines))
     elif rmsd != None:
-        output_lines = [t for t in zip(y_predaff, lines)]
+        output_lines = list(zip(y_predaff, lines))
     elif auc != None:
-        output_lines = [t for t in zip(y_score, lines)]
-                        
+        output_lines = list(zip(y_score, lines))
+                                
 
     #this is all awkward and should be rewritten with a smarter approach than munging strings
     if args.max_score or args.max_affinity:
         output_lines = maxLigandScore(output_lines, args.max_affinity)
         #have to recalculate RMSD and AUC  
-            
+
         if auc != None:
             y_true = [float(line[-1].split()[0]) for line in output_lines]
             y_score = [line[0] for line in output_lines]
@@ -89,9 +88,7 @@ def predict_lines(args):
     predictions = predict(args)
     lines = []
     for line in predictions[0]:
-        l = ''
-        for val in line[:-1]:
-            l += '%f '%val
+        l = ''.join('%f '%val for val in line[:-1])
         l += '| %s' % line[-1]
         lines.append(l)
     if predictions[1] != None:
@@ -110,7 +107,7 @@ def get_ligand_key(rec_path, pose_path):
     rec_name = rec_dir.rsplit('/', 1)[-1]
     pose_name = os.path.splitext(os.path.basename(pose_path))[0]
     pose_name_nums = []
-    for i, part in enumerate(pose_name.split('_')):
+    for part in pose_name.split('_'):
         try:
             pose_name_nums.append(int(part))
         except ValueError:
@@ -131,12 +128,9 @@ def maxLigandScore(lines, useaff):
         elif len(data) == 5: #only affinity present
             score = float(data[0])
             rec_path = data[3].strip()
-            pose_path = data[4].strip()            
+            pose_path = data[4].strip()
         elif len(data) == 6:
-            if useaff:
-                score = float(data[1]) 
-            else:
-                score = float(data[0])
+            score = float(data[1]) if useaff else float(data[0])
             rec_path = data[4].strip()
             pose_path = data[5].strip()
         else:
@@ -167,10 +161,7 @@ def parse_args(argv=None):
 
 if __name__ == '__main__':
     args = parse_args()
-    if not args.output:
-        out = sys.stdout
-    else:
-        out = open(args.output, 'w')
+    out = sys.stdout if not args.output else open(args.output, 'w')
     if args.seed != None:
         caffe.set_random_seed(args.seed)
     if not args.notcalc_predictions:
@@ -180,6 +171,6 @@ if __name__ == '__main__':
             predictions = f.readlines()
         if args.max_score or args.max_affinity:
             predictions = maxLigandScore(predictions, args.max_affinity)
-            
+
     out.writelines(predictions)
 

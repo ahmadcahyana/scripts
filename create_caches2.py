@@ -19,24 +19,24 @@ N = multiprocessing.cpu_count()*2
 def read_data(data_root):
       '''read a types file and put it in mols_to_write'''
       while True:
-        sys.stdout.flush()
-        mol = mols_to_read.get()
-        if mol == None:
-          break
-        fname = mol
-        if len(data_root):
-          fname = data_root+'/'+mol
-        try:
-            with open(fname,'rb') as gninatype:
-              data = gninatype.read()
-              assert(len(data) % 16 == 0)
-              if len(data) == 0:
-                  print(fname,"EMPTY")
-              else: 
-                  mols_to_write.put((mol,data))
-        except Exception as e:
-              print(fname)
-              print(e)
+            sys.stdout.flush()
+            mol = mols_to_read.get()
+            if mol is None:
+                  break
+            fname = mol
+            if len(data_root):
+              fname = data_root+'/'+mol
+            try:
+                with open(fname,'rb') as gninatype:
+                  data = gninatype.read()
+                  assert(len(data) % 16 == 0)
+                  if len(data) == 0:
+                      print(fname,"EMPTY")
+                  else: 
+                      mols_to_write.put((mol,data))
+            except Exception as e:
+                  print(fname)
+                  print(e)
       mols_to_write.put(None)
 
 def fill_queue(molfiles):
@@ -47,55 +47,54 @@ def fill_queue(molfiles):
         mols_to_read.put(None)
  
 def create_cache2(molfiles, data_root, outfile):
-    '''Create an outfile molcache2 file from the list molfiles stored at data_root.'''
-    out = open(outfile,'wb')
-    #first byte is for versioning
-    out.write(struct.pack('i',-1))
-    out.write(struct.pack('L',0)) #placeholder for offset to keys
+      '''Create an outfile molcache2 file from the list molfiles stored at data_root.'''
+      with open(outfile,'wb') as out:
+            #first byte is for versioning
+            out.write(struct.pack('i',-1))
+            out.write(struct.pack('L',0)) #placeholder for offset to keys
 
-    filler = multiprocessing.Process(target=fill_queue,args=(molfiles,))
-    filler.start()
+            filler = multiprocessing.Process(target=fill_queue,args=(molfiles,))
+            filler.start()
 
-   
-    readers = multiprocessing.Pool(N)
-    for _ in range(N):
-      readers.apply_async(read_data,(data_root,))
-    
-    offsets = dict() #indxed by mol, location of data
-    #start writing molecular data
-    endcnt = 0
-    while True:
-        moldata = mols_to_write.get()
-        if moldata == None:
-           endcnt += 1
-           if endcnt == N:
-             break
-           else:
-             continue
-        (mol,data) = moldata
-        offsets[mol] = out.tell()
-        natoms = len(data)//16
-        out.write(struct.pack('i',natoms))
-        out.write(data)
-    
-    start = out.tell() #where the names start
-    for mol in molfiles:
-        if len(mol) > 255:
-            print("Skipping",mol,"since filename is too long")
-            continue
-        if mol not in offsets:
-            print("SKIPPING",mol,"since failed to read it in")
-            continue
-        s = bytes(mol, encoding='UTF-8')
-        out.write(struct.pack('B',len(s)))
-        out.write(s)
-        out.write(struct.pack('L',offsets[mol]))
-        
-    #now set start
-    out.seek(4)
-    out.write(struct.pack('L',start))
-    out.seek(0,os.SEEK_END)
-    out.close()
+
+            readers = multiprocessing.Pool(N)
+            for _ in range(N):
+              readers.apply_async(read_data,(data_root,))
+
+            offsets = {}
+            #start writing molecular data
+            endcnt = 0
+            while True:
+                  moldata = mols_to_write.get()
+                  if moldata is None:
+                        endcnt += 1
+                        if endcnt == N:
+                          break
+                        else:
+                          continue
+                  (mol,data) = moldata
+                  offsets[mol] = out.tell()
+                  natoms = len(data)//16
+                  out.write(struct.pack('i',natoms))
+                  out.write(data)
+
+            start = out.tell() #where the names start
+            for mol in molfiles:
+                if len(mol) > 255:
+                    print("Skipping",mol,"since filename is too long")
+                    continue
+                if mol not in offsets:
+                    print("SKIPPING",mol,"since failed to read it in")
+                    continue
+                s = bytes(mol, encoding='UTF-8')
+                out.write(struct.pack('B',len(s)))
+                out.write(s)
+                out.write(struct.pack('L',offsets[mol]))
+
+            #now set start
+            out.seek(4)
+            out.write(struct.pack('L',start))
+            out.seek(0,os.SEEK_END)
     
     
 
