@@ -161,10 +161,9 @@ def get_results_files(prefix, foldnums, two_data_sources):
             match = re.match(pattern, file)
             if match:
                 r = True
-    
+
     for i in foldnums:
-        files[i] = {}
-        files[i]['out'] = '%s.%d.out' % (prefix, i)
+        files[i] = {'out': '%s.%d.out' % (prefix, i)}
         if p:
             files[i]['auc_finaltest'] = '%s.%d.auc.finaltest' % (prefix, i)
             files[i]['auc_finaltrain'] = '%s.%d.auc.finaltrain' % (prefix, i)
@@ -193,7 +192,7 @@ def make_uniform_array(lists):
     '''Take a list of possibly variable sized lists and return a numpy 2D array
         where the smaller lists are padded to the size of the longest list using 
         their last value'''
-    maxlen = max([len(l) for l in lists])
+    maxlen = max(len(l) for l in lists)
     return np.array([list(l) + [l[-1]]*(maxlen-len(l)) for l in lists])
 
 def combine_fold_results(test_metrics, train_metrics, test_labels, test_preds, train_labels, train_preds,

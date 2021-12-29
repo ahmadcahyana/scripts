@@ -19,8 +19,7 @@ def getcursor():
     doing this guards against dropped connections'''
     conn = MySQLdb.connect (host = "35.196.158.205",user = "opter",passwd=args.password,db="opt1")
     conn.autocommit(True)
-    cursor = conn.cursor(DictCursor)
-    return cursor
+    return conn.cursor(DictCursor)
 
 cursor = getcursor()
 cursor.execute('SELECT * FROM params WHERE msg = "Sucess"')

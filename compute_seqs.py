@@ -10,7 +10,6 @@ def get_smiles(target_names, input_file):
 	'''
 
 	smi_dic={}
-	smi_list=[]
 	with open(input_file) as filein:
 		for line in filein:
 			name=line.split()[0]
@@ -18,10 +17,7 @@ def get_smiles(target_names, input_file):
 			smi=open(smi_file).readline().split()[0]
 			smi_dic[name]=smi
 
-	for tname in target_names:
-		smi_list.append(smi_dic[tname])
-
-	return smi_list
+	return [smi_dic[tname] for tname in target_names]
 
 
 if __name__ == '__main__':

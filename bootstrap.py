@@ -16,8 +16,7 @@ def calc_auc(predictions):
 		values= line.split(" ")
 		y_true.append(float(values[1]))
 		y_score.append(float(values[0]))
-	auc = sklearn.metrics.roc_auc_score(y_true,y_score)
-	return auc
+	return sklearn.metrics.roc_auc_score(y_true,y_score)
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='bootstrap(sampling with replacement) test')
@@ -36,7 +35,7 @@ if __name__ == '__main__':
 		output = 'bootstrap_%s_%s'%(args.model, args.input)
 	else:
 		output = args.output
-	outname=output	
+	outname=output
 	predictions=[]
 	if args.notcalc_predictions=='':
 		cm = args.weights
@@ -46,7 +45,7 @@ if __name__ == '__main__':
 			cm=cm.replace(foldnum, '.[0-9]_iter')
 			foldnum = re.search('[0-9].types',ts).group()
 			ts=ts.replace(foldnum, '[NUMBER].types')
-		
+
 		for caffemodel in glob.glob(cm):
 			testset = ts
 			if not args.number:
@@ -56,10 +55,10 @@ if __name__ == '__main__':
 			args.input = testset
 			args.weights = caffemodel
 			predictions.extend(predict.predict_lines(args))
-	elif args.notcalc_predictions != '':
+	else:
 		for line in open(args.notcalc_predictions).readlines():
 			predictions.append(line)
-		
+
 	all_aucs=[]
 	for _ in range(args.iterations):
 		sample = np.random.choice(predictions,len(predictions), replace=True)
@@ -68,11 +67,9 @@ if __name__ == '__main__':
 	std_dev = np.std(all_aucs)
 	txt = 'mean: %.2f standard deviation: %.2f'%(mean,std_dev)
 	print(txt)
-	output = open(output, 'w')
-	output.writelines('%.2f\n' %auc for auc in all_aucs)
-	output.write(txt)
-	output.close()
-
+	with open(output, 'w') as output:
+		output.writelines('%.2f\n' %auc for auc in all_aucs)
+		output.write(txt)
 	plt.figure()
 	plt.boxplot(all_aucs,0,'rs',0)
 	plt.title('%s AUCs'%args.output, fontsize=22)

@@ -18,13 +18,13 @@ def compute_ligand_similarity(smiles, pair):
     (a,b) = pair
     smi_a = smiles[a]
     mol_a = AllChem.MolFromSmiles(smi_a)
-    if mol_a == None:
+    if mol_a is None:
         mol_a = AllChem.MolFromSmiles(smi_a, sanitize=False)
     fp_a = FingerprintMols.FingerprintMol(mol_a)
 
     smi_b = smiles[b]
     mol_b = AllChem.MolFromSmiles(smi_b)
-    if mol_b == None:
+    if mol_b is None:
         mol_b = AllChem.MolFromSmiles(smi_b, sanitize=False)
     fp_b = FingerprintMols.FingerprintMol(mol_b)
 

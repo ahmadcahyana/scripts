@@ -260,15 +260,14 @@ def makemodel(**kwargs):
 
 models = []
 for gap in [0,1,2]:
-    for penalty in [0,1,2,4]:    
-        for delta in [0,1,2,4,6]:            
-            if delta == 0: huber = "false"
-            else: huber = "true"
+    for penalty in [0,1,2,4]:
+        for delta in [0,1,2,4,6]:    
+            huber = "false" if delta == 0 else "true"
             model = makemodel(GAP=gap,PENALTY=penalty,HUBER=huber, DELTA=delta)
             m = 'affinity_g%d_p%d_h%d.model'%(gap,penalty, delta)
             models.append(m)
             out = open(m,'w')
             out.write(model)
-            
+
 for m in models:
     print("train.py -m %s -p ../types/all_0.5_0_ --keep_best -t 1000 -i 100000 --reduced -o all_%s"%(m,m.replace('.model','')))

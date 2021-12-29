@@ -20,27 +20,27 @@ def elem(t):
         return 'O'
     elif 'Sulfur' in name:
         return 'S'
-    elif 'Phosphorus' == name:
+    elif name == 'Phosphorus':
         return 'P'
-    elif 'Fluorine' == name:
+    elif name == 'Fluorine':
         return 'F'
-    elif 'Chlorine' == name:
+    elif name == 'Chlorine':
         return 'Cl'
-    elif 'Bromine' == name:
+    elif name == 'Bromine':
         return 'Br'
-    elif 'Iodine' == name:
+    elif name == 'Iodine':
         return 'I'
-    elif 'Magnesium' == name:
+    elif name == 'Magnesium':
         return 'Mg'
-    elif 'Manganese' == name:
+    elif name == 'Manganese':
         return 'Mn'
-    elif 'Zinc' == name:
+    elif name == 'Zinc':
         return 'Zn'
-    elif 'Calcium' == name:
+    elif name == 'Calcium':
         return 'Ca'
-    elif 'Iron' == name:
+    elif name == 'Iron':
         return 'Fe'
-    elif 'Boron' == name:
+    elif name == 'Boron':
         return 'B'
     else:
         return 'X'

@@ -2,11 +2,12 @@
 
 '''Combine the output of compute_rows.py into a pickle file for clustering.py'''
 
+
 import pickle, sys, collections
 import numpy as np
 
 target_names = []
-targets = dict() # name to index
+targets = {}
 values = collections.defaultdict(dict) # indexed by row name, col name
 
 for fname in sys.argv[1:]:
@@ -17,8 +18,8 @@ for fname in sys.argv[1:]:
             targets[t2] = len(target_names)
             target_names.append(t2)
         values[t1][t2] = (dist,lsim)
-        
-        
+
+
 #must have fully filled out matrix
 l = len(target_names)
 m = np.empty((l,l))
@@ -32,7 +33,7 @@ for t1 in values.keys():
         j = targets[t2]
         m[i][j] = values[t1][t2][0]
         lm[i][j] = values[t1][t2][1]
-    
+
 #check throws a key error if a key is missing in targets
 #      or prints the sentence if NAN is present
 for i in range(l):
@@ -43,5 +44,5 @@ for i in range(l):
         if not np.isfinite(lm[i][j]):
             print("Missing ligand_sim for",targets[i],targets[j])
 
-    
+
 pickle.dump((m, target_names, lm), open('matrix.pickle','wb'),-1)

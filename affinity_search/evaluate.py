@@ -29,7 +29,7 @@ def evaluate_fold(testfile, caffemodel, modelname, datadir='../..',hasrmsd=False
     '''
     if not os.path.exists(modelname):
        print(modelname,"does not exist")
-        
+
     caffe.set_mode_gpu()
     test_model = 'predict.%d.prototxt' % os.getpid()
     train.write_model_file(test_model, modelname, testfile, testfile, datadir)
@@ -71,16 +71,15 @@ def evaluate_fold(testfile, caffemodel, modelname, datadir='../..',hasrmsd=False
 
         #extract ligand/receptor for input file
         tokens = line.split()
-        rmsd = -1
         for t in range(len(tokens)):
             if tokens[t].lower()=='none':
                 #Flag that none as the receptor file, for ligand-only models
                 ligand=tokens[t+1]
-                
+
                 #we assume that ligand is rec/<ligname>
                 #set if correct, bail if not.
                 m=re.search(r'(\S+)/(\S+)gninatypes',ligand)
-                
+
                 #Check that the match is not none, and that ligand ends in gninatypes
                 if m is not None:
                     receptor=m.group(1)
@@ -90,13 +89,12 @@ def evaluate_fold(testfile, caffemodel, modelname, datadir='../..',hasrmsd=False
                     print('Bailing.')
                     sys.exit(1)
                 break
-                
+
             elif tokens[t].endswith('gninatypes'):
                 receptor = tokens[t]
                 ligand = tokens[t+1]
                 break
-        if hasrmsd:
-            rmsd = float(tokens[2])
+        rmsd = float(tokens[2]) if hasrmsd else -1
         #(correct, prediction, receptor, ligand, label (optional), posescore (optional))       
         if posescore < 0:
             ret.append((correct, prediction, receptor, ligand))
@@ -104,9 +102,9 @@ def evaluate_fold(testfile, caffemodel, modelname, datadir='../..',hasrmsd=False
             ret.append((correct, prediction, receptor, ligand, label, posescore, rmsd))            
         else:
             ret.append((correct, prediction, receptor, ligand, label, posescore))
-            
+
         i += 1 #batch index
-        
+
     os.remove(test_model)
     return ret
     
@@ -115,7 +113,7 @@ def reduce_results(results, index):
     '''Return results with only one tuple for every receptor value,
     taking the one with the max value at index in the tuple (predicted affinity or pose score)
     '''
-    res = dict() #indexed by receptor
+    res = {}
     for r in results:
         name = r[2]
         if name not in res:

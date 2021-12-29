@@ -39,18 +39,14 @@ import pandas as pd
 from rdkit.Chem import AllChem as Chem
 
 def check_exists(filename):
-	if os.path.isfile(filename) and os.path.getsize(filename)>0:
-		return True
-	else:
-		return False
+	return bool(os.path.isfile(filename) and os.path.getsize(filename)>0)
 
 def get_pocket_lines(filename,pocket):
 	'''
 	This function reads the lines from filename, and returns only the lines which contain pocket in them.
 	'''
 	all_lines=open(filename).readlines()
-	lines=[x for x in all_lines if pocket in x]
-	return lines
+	return [x for x in all_lines if pocket in x]
 
 def calc_ligand_dic(lines,ligand_suffix):
 	'''
@@ -99,17 +95,13 @@ def get_lines_towrite(crystal_lookup,list_of_docked,affinity_lookup,crystal_suff
 	lines={}
 
 	for docked in list_of_docked:
-		#Figure out affinity.
-		affinity=0.0
 		crystal=crystal_lookup[docked]
 		cr_lookup=crystal.split(crystal_suffix)[0]
-		if cr_lookup in affinity_lookup:
-			affinity=affinity_lookup
+		affinity = affinity_lookup if cr_lookup in affinity_lookup else 0.0
 		print(docked,crystal)
 		rmsds=run_obrms(docked,crystal)
-		counter=0
 		lines[docked]=[]
-		for r in rmsds:
+		for counter, r in enumerate(rmsds):
 			if r < 2:
 				label='1'
 				neg_aff=''
@@ -120,7 +112,6 @@ def get_lines_towrite(crystal_lookup,list_of_docked,affinity_lookup,crystal_suff
 			rec_gninatypes=docked.split('rec')[0]+'rec_0.gninatypes'
 			lig_gninatypes=docked.replace('.sdf','_'+str(counter)+'.gninatypes')
 			lines[docked].append(f'{label} {neg_aff}{affinity} {r} {rec_gninatypes} {lig_gninatypes}\n')
-			counter+=1
 	return lines
 
 def run_obrms_cross(filename):
@@ -130,8 +121,7 @@ def run_obrms_cross(filename):
 
 	csv=subprocess.check_output('obrms -x '+filename,shell=True)
 	csv=str(csv,'utf-8').rstrip().split('\n')
-	data=pd.DataFrame([x.split(',')[1:] for x in csv],dtype=float)
-	return data
+	return pd.DataFrame([x.split(',')[1:] for x in csv],dtype=float)
 
 
 parser=argparse.ArgumentParser(description='Create lines to add to types files from counterexample generation. Assumes data file structure is ROOT/POCKET/FILES.')
@@ -234,7 +224,7 @@ with open(myroot+args.outname,'w') as outfile:
 					if simi not in assignments:
 						assignments[simi]=r
 
-		to_remove=set([k for (k,v) in assignments.items() if k!=v])
+		to_remove = {k for (k,v) in assignments.items() if k!=v}
 		#5) write the remaining lines for the newly found "unique" poses.
 		counter=offset
 		for key in keys:

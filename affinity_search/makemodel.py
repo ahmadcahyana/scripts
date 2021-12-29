@@ -101,7 +101,7 @@ nonparms = parser.add_argument_group('non-parameter options')
 
 def getoptions():
     '''return options that have choices'''
-    ret = dict()
+    ret = {}
     for a in parser._actions:
         if type(a) == argparse._StoreAction:
             if a.type == bool:
@@ -112,11 +112,11 @@ def getoptions():
 
 def getdefaults():
     '''return defaults for arguments with choices'''
-    ret = dict()
-    for a in parser._actions:
-        if type(a) == argparse._StoreAction and a.choices:
-            ret[a.dest] = a.default
-    return ret
+    return {
+        a.dest: a.default
+        for a in parser._actions
+        if type(a) == argparse._StoreAction and a.choices
+    }
     
     
 def boolstr(val):

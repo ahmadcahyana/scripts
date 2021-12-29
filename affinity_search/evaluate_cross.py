@@ -26,7 +26,7 @@ def reduce_results(results, index, which):
     '''Return results with only one tuple for every pocket-ligand value,
     taking the one with the max value at index in the tuple (predicted affinity or pose score)
     '''
-    res = dict() #indexed by pocketligand
+    res = {}
     for r in results:
         lname = r[3]
         m = re.search(r'(\S+)/...._._rec_...._(\S+)_(lig|uff_min)',lname)
@@ -35,13 +35,12 @@ def reduce_results(results, index, which):
         key = pocket+':'+lig
         if key not in res:
             res[key] = r
-        else:
-            if which == 'small': #select smallest by index
-                if res[key][index] > r[index]:
-                    res[key] = r
-            elif res[key][index] < r[index]:
+        elif which == 'small': #select smallest by index
+            if res[key][index] > r[index]:
                 res[key] = r
-                    
+        elif res[key][index] < r[index]:
+            res[key] = r
+
     return list(res.values())
 
 def analyze_cross_results(results,outname,uniquify):
@@ -109,9 +108,9 @@ if __name__ == '__main__':
     parser.add_argument('-o','--outprefix',type=str,required=True, help='Prefix for output files. Generates several <prefix>*.predictions files, and a <prefix>.summary file')
     parser.add_argument('-t','--testprefix',type=str,required=True, nargs='+',help='Prefix to the test types files. Format <prefix>test<fold>.types')
     parser.add_argument('--has_rmsd',action='store_true', default=False, help='Flag that RMSD values are in the types files. Defaults to False')
-    
+
     args=parser.parse_args()
-    
+
     datadir = args.datadir
     name = args.weights_prefix
     modelname = args.model
@@ -125,9 +124,9 @@ if __name__ == '__main__':
     last = None
     #for each test dataset
     for testprefix in args.testprefix:
-        print(testprefix)        
+        print(testprefix)
         #find the relevant models for each fold
-        
+
         testresults = []
         for fold in [0,1,2]: #blah! hard coded
             lastm = 0
@@ -137,23 +136,23 @@ if __name__ == '__main__':
                 inum = int(m.group(1))
                 if inum > lastm:
                     lastm = inum
-                                 
+
             #evalute this fold
             testfile = '%stest%d.types' % (testprefix,fold)            
             testresults += evaluate_fold(testfile, '%s.%d_iter_%d.caffemodel' % (name,fold,lastm), modelname, datadir, args.has_rmsd)
-            
-        if len(testresults) == 0:
+
+        if not testresults:
             print("Missing data with",testprefix)
         if args.has_rmsd:
             assert(len(testresults[0]) == 7)
         else:
             assert(len(testresults[0]) == 6)
-        
+
         allresults.append( (testname,'pose') + analyze_cross_results(testresults,testname+'_pose','pose'))
         if args.has_rmsd:
             allresults.append( (testname,'rmsd') + analyze_cross_results(testresults,testname+'_rmsd','rmsd'))
         allresults.append( (testname,'affinity') + analyze_cross_results(testresults,testname+'_affinity','affinity'))
 
-         
+
     for a in allresults:
         out.write(' '.join(map(str,a))+'\n')

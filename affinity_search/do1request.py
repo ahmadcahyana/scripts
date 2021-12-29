@@ -33,7 +33,6 @@ def rm(inprogressname):
         os.remove(inprogressname)
     except OSError:
         print("Error removing",inprogressname)
-        pass
         
 sys.path.append(get_script_path())
 sys.path.append(get_script_path()+'/..') #train
@@ -43,8 +42,7 @@ def getcursor():
     doing this guards against dropped connections'''
     conn = MySQLdb.connect (host = args.host,user = "opter",passwd=args.password,db=args.db)
     conn.autocommit(True)
-    cursor = conn.cursor(DictCursor)
-    return cursor
+    return conn.cursor(DictCursor)
 
 def getgpuid():
     '''return unique id of gpu 0'''
@@ -89,26 +87,23 @@ else:
             #set config
             config = row
             break
-            
+
     if config: #write out what we're doing
         d = tempfile.mkdtemp(prefix=socket.gethostname() +'-',dir='.')
         config['msg'] = d
-        progout = open(inprogressname,'w')
-        if 'time' in config:
-            del config['time']
-        progout.write(json.dumps(config))
-        progout.close()
-
-
+        with open(inprogressname,'w') as progout:
+            if 'time' in config:
+                del config['time']
+            progout.write(json.dumps(config))
 if not config:
     print("Nothing requested")
     sys.exit(2)  # there was nothing to do, perhaps we should shutdown?
-    
+
 #at this point have a configuration
 values = ['0','0']
 for (name,val) in sorted(opts.items()):
     values.append(str(config[name]))
-    
+
 cmdline = '%s/runline.py --prefix %s --data_root "%s" --seed %d --split %d --dir %s --line "%s"' % \
         (get_script_path(), args.prefix,args.data_root,config['seed'],config['split'], config['msg'], ' '.join(values))
 if(args.ligmap): cmdline += " --ligmap %s"%args.ligmap
@@ -138,7 +133,7 @@ except Exception as e:
         os.system("sudo reboot")
     rm(inprogressname)    
     sys.exit(0)  #we tried
-    
+
 
 #if successful, store in database
 
